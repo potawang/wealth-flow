@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WealthFlow - 財務模擬系統 (最終版)</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --success-color: #4cc9f0;
+            --danger-color: #f72585;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Roboto, "Helvetica Neue", sans-serif;
+            color: #2b2d42;
+            padding-bottom: 80px;
+        }
+
+        /* 卡片風格 */
+        .modern-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+        
+        /* 導購卡片特效 */
+        .promo-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 5px solid transparent;
+        }
+        .promo-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        }
+        .promo-danger { border-left-color: var(--danger-color); background: #fff5f7; }
+        .promo-success { border-left-color: var(--primary-color); background: #f0f7ff; }
+
+        /* 修正圖示變形問題 (固定圓形) */
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            min-width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* 滑桿樣式 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px;
+            border-radius: 50%; background: var(--primary-color);
+            cursor: pointer; margin-top: -8px; 
+            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.4);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: #e9ecef; border-radius: 2px;
+        }
+
+        /* 狀態標籤 */
+        .status-pill {
+            padding: 6px 16px; border-radius: 50px; font-weight: 700; font-size: 0.85rem;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .status-safe { background-color: rgba(76, 201, 240, 0.15); color: #0096c7; }
+        .status-danger { background-color: rgba(247, 37, 133, 0.15); color: #d00000; }
+
+        .big-stat { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+        .stat-label { font-size: 0.85rem; color: #6c757d; margin-bottom: 4px; }
+        .control-label { font-size: 0.85rem; font-weight: 600; color: #555; display: flex; justify-content: space-between; margin-bottom: 6px;}
+        .unit-tag { font-size: 0.75rem; color: #999; font-weight: normal; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0"><i class="bi bi-calculator-fill text-primary me-2"></i>WealthFlow</h2>
+            <p class="text-muted small mb-0">人生財務規劃推演系統</p>
+        </div>
+        <span id="statusBadge" class="status-pill status-safe">計算中...</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            
+            <div class="modern-card p-4 mb-3">
+                <h6 class="fw-bold text-uppercase text-muted small mb-3">核心參數</h6>
+                
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>目前年齡</span>
+                        <span class="text-primary fw-bold"><span id="disp_age">30</span> 歲</span>
+                    </div>
+                    <input type="range" id="currentAge" min="20" max="60" value="30" oninput="syncVal('currentAge', 'disp_age')">
+                </div>
+                
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>年收入 <span class="unit-tag">(萬元)</span></span>
+                        <input type="number" class="form-control form-control-sm border-0 bg-light text-end fw-bold text-primary" style="width:80px;" id="annualIncome" value="65">
+                    </div>
+                    <input type="range" id="range_income" min="30" max="300" value="65" oninput="syncInput('range_income', 'annualIncome', 1)">
+                </div>
+                
+                <div class="mb-1">
+                    <div class="control-label">
+                        <span>薪資年成長率</span>
+                        <span class="text-warning fw-bold" id="disp_growth">3%</span>
+                    </div>
+                    <input type="range" id="salaryGrowth" min="0" max="10" step="0.5" value="3" oninput="syncVal('salaryGrowth', 'disp_growth', '%')">
+                </div>
+            </div>
+
+            <div class="modern-card p-4 mb-3">
+                <h6 class="fw-bold text-uppercase text-muted small mb-3">購屋計畫</h6>
+                
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>房屋總價 <span class="unit-tag">(萬元)</span></span>
+                        <input type="number" class="form-control form-control-sm border-0 bg-light text-end fw-bold text-danger" style="width:100px;" id="housePrice" value="1500">
+                    </div>
+                    <input type="range" id="range_house" min="500" max="5000" value="1800" oninput="syncInput('range_house', 'housePrice', 1)">
+                </div>
+                
+                <div class="mb-1">
+                    <div class="control-label">
+                        <span>購屋年齡</span>
+                        <span class="text-danger fw-bold"><span id="disp_buyAge">38</span> 歲</span>
+                    </div>
+                    <input type="range" id="buyHouseAge" min="25" max="60" value="38" oninput="syncVal('buyHouseAge', 'disp_buyAge')">
+                </div>
+            </div>
+
+            <div class="accordion" id="accordionSettings">
+                <div class="accordion-item border-0 bg-transparent">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed modern-card shadow-sm py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            <i class="bi bi-sliders me-2"></i> 進階設定 (房貸/收支)
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionSettings">
+                        <div class="modern-card p-4 mt-2">
+                            
+                            <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label class="control-label text-success">預計退休年齡 (歲)</label>
+                                    <input type="number" id="retireAge" class="form-control border-success" value="65">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">房貸利率 (%)</label>
+                                    <input type="number" id="mortgageRate" class="form-control" value="2.2" step="0.1">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">房貸年期 (年)</label>
+                                    <input type="number" id="mortgageYears" class="form-control" value="30">
+                                </div>
+                            </div>
+
+                            <hr class="text-muted opacity-25">
+
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="control-label">目前資產 <span class="unit-tag">(萬)</span></label>
+                                    <input type="number" id="currentAssets" class="form-control" value="50">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">年支出 <span class="unit-tag">(萬)</span></label>
+                                    <input type="number" id="annualExpense" class="form-control" value="24">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">房租 <span class="unit-tag">(萬/年)</span></label>
+                                    <input type="number" id="currentRent" class="form-control" value="18">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">投資佔比%</label>
+                                    <input type="number" id="investPercent" class="form-control" value="70">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">投資報酬%</label>
+                                    <input type="number" id="investmentReturn" class="form-control" value="6">
+                                </div>
+                                <div class="col-6">
+                                    <label class="control-label">通膨率%</label>
+                                    <input type="number" id="inflationRate" class="form-control" value="2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="modern-card p-4 h-100 d-flex flex-column">
+                
+                <div class="row mb-4 text-center border-bottom pb-3">
+                    <div class="col-4 border-end">
+                        <div class="stat-label">退休時年薪 (萬)</div>
+                        <div class="fw-bold" id="stat_endSalary">--</div>
+                    </div>
+                    <div class="col-4 border-end">
+                        <div class="stat-label text-primary" id="label_retireAssets">65歲資產 (萬)</div>
+                        <div class="big-stat text-primary" id="stat_retireAssets">--</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-label text-danger">最低資產點 (萬)</div>
+                        <div class="fw-bold text-danger" id="stat_minAssets">--</div>
+                    </div>
+                </div>
+
+                <div id="promoArea" class="mb-3" style="min-height: 0;"></div>
+
+                <div class="flex-grow-1" style="min-height: 350px; position: relative;">
+                    <canvas id="wealthChart"></canvas>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // 🔥🔥 請在此設定你的真實課程連結 🔥🔥
+    const PROMO_LINKS = {
+        danger: "https://hahow.in/couponclaimed/691f28c036908f7daa234d5f", // 破產時 (急救)
+        success: "https://hahow.in/couponclaimed/691f28c036908f7daa234d5f" // 成功時 (進階)
+    };
+
+    // 初始化
+    window.onload = () => {
+        calculateAndDraw();
+    };
+
+    // UI 同步函數
+    function syncInput(rangeId, inputId, multiplier) {
+        const val = document.getElementById(rangeId).value;
+        document.getElementById(inputId).value = val * multiplier;
+        calculateAndDraw();
+    }
+    
+    // 反向同步 (輸入框 -> 滑桿)
+    document.getElementById('annualIncome').addEventListener('input', function() {
+        document.getElementById('range_income').value = this.value;
+        calculateAndDraw();
+    });
+    document.getElementById('housePrice').addEventListener('input', function() {
+        document.getElementById('range_house').value = this.value;
+        calculateAndDraw();
+    });
+
+    function syncVal(rangeId, displayId, suffix = '') {
+        document.getElementById(displayId).innerText = document.getElementById(rangeId).value + suffix;
+        calculateAndDraw();
+    }
+    
+    // 監聽所有輸入框
+    document.querySelectorAll('input').forEach(input => {
+        if(!input.getAttribute('oninput')) input.addEventListener('input', calculateAndDraw);
+    });
+
+    let myChart = null;
+    let hasConfettiPopped = false;
+
+    function calculateAndDraw() {
+        // 1. 讀取數值 (單位：萬元)
+        const currentAge = parseInt(document.getElementById('currentAge').value);
+        const retireAge = parseInt(document.getElementById('retireAge').value);
+        
+        let assets = parseFloat(document.getElementById('currentAssets').value);
+        let annualIncome = parseFloat(document.getElementById('annualIncome').value);
+        const salaryGrowth = parseFloat(document.getElementById('salaryGrowth').value) / 100;
+        let annualExpense = parseFloat(document.getElementById('annualExpense').value);
+        const currentRent = parseFloat(document.getElementById('currentRent').value);
+        
+        const buyHouseAge = parseInt(document.getElementById('buyHouseAge').value);
+        const housePrice = parseFloat(document.getElementById('housePrice').value);
+        
+        const investPercent = parseFloat(document.getElementById('investPercent').value) / 100;
+        const investmentReturn = parseFloat(document.getElementById('investmentReturn').value) / 100;
+        const inflationRate = parseFloat(document.getElementById('inflationRate').value) / 100;
+        
+        const mortgageRate = parseFloat(document.getElementById('mortgageRate').value) / 100;
+        const mortgageYears = parseInt(document.getElementById('mortgageYears').value);
+        const downPaymentPercent = 20;
+        const cashReturn = 0.01;
+        const maxAge = 90;
+        
+        // 房貸試算 (PMT公式，單位：萬元)
+        const loanAmount = housePrice * (1 - downPaymentPercent / 100);
+        const r = mortgageRate / 12; 
+        const n = mortgageYears * 12; 
+        let annualMortgage = 0;
+        if (r > 0) {
+            annualMortgage = (loanAmount * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1)) * 12;
+        } else {
+            annualMortgage = (loanAmount / n) * 12;
+        }
+
+        let labels = [];
+        let dataPoints = [];
+        let hasBoughtHouse = false;
+        let mortgageRemainingYears = 0;
+        let isBankrupt = false;
+        let minAsset = assets;
+        let currentSalary = annualIncome;
+        
+        let assetsAtRetirement = 0;
+        let salaryAtRetirement = 0;
+
+        // 2. 模擬迴圈
+        for (let age = currentAge; age <= maxAge; age++) {
+            labels.push(age);
+
+            // A. 買房扣款
+            if (age === buyHouseAge && !hasBoughtHouse) {
+                assets -= (housePrice * (downPaymentPercent/100));
+                assets -= (housePrice * 0.1); // 裝潢雜支 10%
+                hasBoughtHouse = true;
+                mortgageRemainingYears = mortgageYears;
+            }
+
+            // B. 收入計算
+            let thisYearIncome = 0;
+            if (age < retireAge) {
+                thisYearIncome = currentSalary;
+                currentSalary *= (1 + salaryGrowth);
+            } else if (age === retireAge) {
+                salaryAtRetirement = currentSalary;
+            }
+
+            // C. 支出計算
+            let thisYearExpense = annualExpense;
+            if (hasBoughtHouse) {
+                if (mortgageRemainingYears > 0) {
+                    thisYearExpense += annualMortgage;
+                    mortgageRemainingYears--;
+                }
+            } else {
+                thisYearExpense += currentRent;
+            }
+
+            // D. 投資回報
+            if (assets > 0) {
+                let gain = (assets * investPercent * investmentReturn) + (assets * (1-investPercent) * cashReturn);
+                assets += gain;
+            }
+
+            assets += (thisYearIncome - thisYearExpense);
+            
+            // 紀錄關鍵數據
+            if (age === retireAge) assetsAtRetirement = assets;
+            if (assets < minAsset) minAsset = assets;
+            if (assets < 0) isBankrupt = true;
+
+            dataPoints.push(assets);
+            annualExpense *= (1 + inflationRate);
+        }
+
+        // 3. 更新 UI 與圖表
+        updateUI(isBankrupt, assetsAtRetirement, minAsset, salaryAtRetirement, retireAge);
+        renderChart(labels, dataPoints, buyHouseAge, retireAge);
+    }
+
+    function updateUI(isBankrupt, retireAsset, minAsset, finalSalary, retireAge) {
+        const badge = document.getElementById('statusBadge');
+        const statRetire = document.getElementById('stat_retireAssets');
+        const labelRetire = document.getElementById('label_retireAssets');
+        const statMin = document.getElementById('stat_minAssets');
+        const statSal = document.getElementById('stat_endSalary');
+        const promoArea = document.getElementById('promoArea');
+        
+        // 數字格式化 (加逗號)
+        const fmt = (num) => Math.round(num).toLocaleString() + " 萬";
+
+        labelRetire.innerText = `${retireAge}歲 資產`;
+        statRetire.innerText = fmt(retireAsset);
+        statMin.innerText = fmt(minAsset);
+        statSal.innerText = fmt(finalSalary);
+
+        if (isBankrupt) {
+            badge.className = "status-pill status-danger";
+            badge.innerHTML = `<i class="bi bi-exclamation-circle"></i> 風險極高`;
+            statRetire.classList.remove('text-success');
+            
+            // 🔴 破產版導購 (icon-box 已修正為正圓形)
+            promoArea.innerHTML = `
+                <div class="modern-card promo-card promo-danger p-3" onclick="window.open('${PROMO_LINKS.danger}', '_blank')">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-danger text-white icon-box me-3">
+                            <i class="bi bi-life-preserver fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-danger mb-1">警報：模擬結果顯示有破產風險</h6>
+                            <p class="mb-0 small text-secondary">別讓人生卡關！點擊領取 <strong>「動盪時代資產配置」</strong> 300元折價券。</p>
+                        </div>
+                        <div class="ms-auto text-danger"><i class="bi bi-chevron-right"></i></div>
+                    </div>
+                </div>
+            `;
+            hasConfettiPopped = false;
+        } else {
+            badge.className = "status-pill status-safe";
+            badge.innerHTML = `<i class="bi bi-check-lg"></i> 財務穩健`;
+            statRetire.classList.add('text-success');
+            
+            // 🔵 成功版導購
+            promoArea.innerHTML = `
+                <div class="modern-card promo-card promo-success p-3" onclick="window.open('${PROMO_LINKS.success}', '_blank')">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white icon-box me-3">
+                            <i class="bi bi-rocket-takeoff fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-primary mb-1">太棒了！還想要變得更好嗎？</h6>
+                            <p class="mb-0 small text-secondary">點擊領取 <strong>「動盪時代資產配置」</strong> 300元折價券。</p>
+                        </div>
+                        <div class="ms-auto text-primary"><i class="bi bi-chevron-right"></i></div>
+                    </div>
+                </div>
+            `;
+
+            if (!hasConfettiPopped && retireAsset > 0) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                hasConfettiPopped = true;
+            }
+        }
+    }
+
+    function renderChart(labels, data, buyAge, retireAge) {
+        const ctx = document.getElementById('wealthChart').getContext('2d');
+        if (myChart) myChart.destroy();
+
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(76, 201, 240, 0.5)');
+        gradient.addColorStop(1, 'rgba(67, 97, 238, 0.0)');
+
+        const bgColors = data.map(v => v >= 0 ? '#4cc9f0' : '#f72585');
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '淨資產',
+                    data: data,
+                    backgroundColor: bgColors,
+                    borderRadius: 3,
+                    barPercentage: 0.8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 0 }, // 關閉動畫以提升拖曳效能
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => Math.round(ctx.parsed.y).toLocaleString() + " 萬",
+                            afterLabel: ctx => {
+                                const a = parseInt(ctx.label);
+                                if(a===buyAge) return "🏠 買房點";
+                                if(a===retireAge) return "🛑 退休點";
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: {display:false}, ticks:{maxTicksLimit:12} },
+                    y: { 
+                        grid: {borderDash:[4,4]}, 
+                        ticks: {callback: v => v + '萬'} 
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
