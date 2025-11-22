@@ -403,7 +403,7 @@
             badge.innerHTML = `<i class="bi bi-exclamation-circle"></i> 風險極高`;
             statRetire.classList.remove('text-success');
             
-            // 🔴 破產版導購 (icon-box 已修正為正圓形)
+      // 🔴 破產版導購 (強化文字版)
             promoArea.innerHTML = `
                 <div class="modern-card promo-card promo-danger p-3" onclick="window.open('${PROMO_LINKS.danger}', '_blank')">
                     <div class="d-flex align-items-center">
@@ -411,20 +411,26 @@
                             <i class="bi bi-life-preserver fs-4"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold text-danger mb-1">警報：模擬結果顯示有破產風險</h6>
-                            <p class="mb-0 small text-secondary">別讓人生卡關！前往 <strong>「動盪時代資產配置」</strong> 折扣碼 HH300 現折 300 元。</p>
+                            <h6 class="fw-bold text-danger mb-2">警報：模擬結果顯示有破產風險</h6>
+                            
+                            <div class="text-dark" style="line-height: 1.5;">
+                                別讓人生卡關！前往 <strong class="text-danger">「動盪時代資產配置」</strong><br>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger mt-1">折扣碼 HH300</span> 
+                                <span class="fw-bold">現折 300 元</span>
+                            </div>
+
                         </div>
                         <div class="ms-auto text-danger"><i class="bi bi-chevron-right"></i></div>
                     </div>
                 </div>
             `;
             hasConfettiPopped = false;
-        } else {
+       } else {
             badge.className = "status-pill status-safe";
             badge.innerHTML = `<i class="bi bi-check-lg"></i> 財務穩健`;
             statRetire.classList.add('text-success');
             
-            // 🔵 成功版導購
+            // 🔵 成功版導購 (強化文字版)
             promoArea.innerHTML = `
                 <div class="modern-card promo-card promo-success p-3" onclick="window.open('${PROMO_LINKS.success}', '_blank')">
                     <div class="d-flex align-items-center">
@@ -432,8 +438,14 @@
                             <i class="bi bi-rocket-takeoff fs-4"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold text-primary mb-1">太棒了！還想要變得更好嗎？</h6>
-                            <p class="mb-0 small text-secondary">前往 <strong>「動盪時代資產配置」</strong>課程，折扣碼 HH300 現折 300 元。</p>
+                            <h6 class="fw-bold text-primary mb-2">太棒了！想提早退休嗎？</h6>
+                            
+                            <div class="text-dark" style="line-height: 1.5;">
+                                既然基礎穩固，推薦 <strong class="text-primary">「全方位資產配置實戰」</strong><br>
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary mt-1">折扣碼 HH300</span> 
+                                <span class="fw-bold">現折 300 元</span>
+                            </div>
+
                         </div>
                         <div class="ms-auto text-primary"><i class="bi bi-chevron-right"></i></div>
                     </div>
